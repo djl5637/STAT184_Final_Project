@@ -1,0 +1,175 @@
+---
+title: "Final_project"
+author: "Donggeon 'kyle' Lee"
+data: "2020. 12. 01"
+output: html_notebook
+---
+
+
+```{r, message = FALSE, warning = FALSE}
+#install libraries need in this project
+rm(list = ls())
+
+library(DataComputing)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(tidyverse)
+library(dplyr)
+library(lubridate)
+library(mosaic)
+library(rvest)
+library(readr)
+library(usmap)
+```
+
+### Research question: 
+**Does AQI(Air quality Index) have a association with the number of COVID-19 patients in each state in U.S?**
+
+```{r, message = FALSE, warning = FALSE}
+#Importing the main dataset
+COVID_19 <- read.csv("C:/Users/Administrator/Desktop/STAT 184/Project/archive (1)/covid-19-all.csv")
+COVID_19
+```
+
+```{r, message = FALSE, warning = FALSE}
+#Importing the sub dataset
+
+Airquality <- read_csv("C:/Users/Administrator/Downloads/csvData.csv")
+Airquality
+```
+
+```{r}
+#Represent the structure of COVID_19 dataset
+
+str(COVID_19)
+```
+```{r}
+#Represent the structure of Airquality dataset
+
+str(Airquality)
+```
+
+```{r, message = FALSE, warning = FALSE}
+#Data wrangling the COVID_19 dataset
+
+COVID_19_clean <-
+  COVID_19 %>%
+  rename(state = Province.State, Country = Country.Region) %>%
+  filter(Country == "US")
+
+COVID_19_clean
+```
+
+```{r, message = FALSE, warning = FALSE}
+#Data wrangling the Airquality dataset
+function_round <- function(a){
+  result <- round(a, digits = 0)
+  print(result)
+}
+
+
+Airquality_clean <-
+  Airquality %>%
+  rename(Population = Pop, AirQuality = AirQualityIndex, state = State) %>%
+  mutate(AirQuality = function_round(AirQuality))
+
+Airquality_clean
+```
+
+```{r}
+#Visualization for COVID_19 dataset (Confirmed in U.S)
+COVID_19_Visual <-
+  COVID_19_clean %>%
+  group_by(state) %>%
+  summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths)) %>%
+  arrange(desc(Deaths)) 
+
+  plot_usmap(data = COVID_19_Visual, values = "Confirmed", color = "red") + 
+  scale_fill_continuous(name = "Population", label = scales::comma) + 
+  theme(legend.position = "right")
+```
+
+```{r}
+#Visualization for COVID_19 dataset (Recovered in U.S)
+COVID_19_Visual <-
+  COVID_19_clean %>%
+  group_by(state) %>%
+  summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths)) %>%
+  arrange(desc(Deaths)) 
+
+  plot_usmap(data = COVID_19_Visual, values = "Recovered", color = "red") + 
+  scale_fill_continuous(name = "Population", label = scales::comma) + 
+  theme(legend.position = "right")
+```
+```{r}
+#Visualization for COVID_19 dataset (Deaths in U.S)
+COVID_19_Visual <-
+  COVID_19_clean %>%
+  group_by(state) %>%
+  summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths)) %>%
+  arrange(desc(Deaths)) 
+
+  plot_usmap(data = COVID_19_Visual, values = "Deaths", color = "red") + 
+  scale_fill_continuous(name = "Population", label = scales::comma) + 
+  theme(legend.position = "right")
+```
+
+
+
+```{r}
+#Visualization for Airquliaty in U.s
+
+  plot_usmap(data = Airquality_clean, values = "AirQuality", color = "pink") + 
+  scale_fill_continuous(
+    low = "white", high = "purple", name = "Airquality(level)", label = scales::comma
+  ) + theme(legend.position = "right")
+```
+```{r}
+#Join the datasets with 'state' variable
+
+COVID_19_join <-
+  COVID_19_Visual %>%
+  mutate(state = gsub(pattern = ", .+", replacement = "", state))
+
+Join_datasets <-
+  Airquality_clean %>%
+  inner_join(COVID_19_join, by = "state")
+```
+```{r}
+#Show what is the relationship between Airquality and Confirmed
+
+Join_datasets %>%
+  ggplot(aes(x = AirQuality, y = Confirmed)) +
+  geom_point(aes(colour = state, na.rm = TRUE)) +
+  geom_smooth(method = lm, se = FALSE)
+```
+```{r}
+#Show what is the relationship between Airquality and Recovered
+Join_datasets %>%
+  ggplot(aes(x = AirQuality, y = Recovered)) +
+  geom_point(aes(colour = state), na.rm = TRUE) +
+   geom_smooth(method = lm, se = FALSE)
+```
+
+```{r}
+#Show what is the relationship between Airquality and Deaths
+Join_datasets %>%
+  ggplot(aes(x = AirQuality, y = Deaths)) +
+  geom_point(aes(colour = state), na.rm = TRUE) +
+   geom_smooth(method = lm, se = FALSE)
+```
+
+### Conclusion
+
+Those 3 scatter plots show that Population (Confirmed, Recovered, Deaths) have a merely positive correlation with Air Quality Index. But it's different from my expectation. Following personal thought, when the Airquality goes low, the population of the variables should go up because the bad air quality means that air pollution occurred frequently and make more patients infected such as cold and respiratory diseases. Unfortunately, the results of this project is off my expectation but still shows interesting results. 
+
+
+### References
+
+- Preda, G. (2020, December 10). COVID19 Daily Updates. Retrieved December 14, 2020, from https://www.kaggle.com/gpreda/coronavirus-2019ncov (COVID_19 dataset)
+
+- (n.d.). Retrieved December 14, 2020, from https://worldpopulationreview.com/state-rankings/air-quality-by-state (Airquality dataset)
+
+
+
